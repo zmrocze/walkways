@@ -8,7 +8,7 @@ use tracing_subscriber;
 // In code use:
 // 
 // use std::{error::Error, io};
-// use tracing::{dtrace, debug, info, warn, error, Level};
+// use tracing::{trace, debug, info, warn, error, Level};
 
 // // the `#[tracing::instrument]` attribute creates and enters a span
 // // every time the instrumented function is called. The span is named after

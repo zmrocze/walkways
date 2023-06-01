@@ -1,5 +1,4 @@
-use clap::{Parser};
-// use clap::{crate_version, crate_description, crate_authors};
+use clap::Parser;
 
 use core::commands;
 use utils::app_config::AppConfig;

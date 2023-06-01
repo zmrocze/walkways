@@ -3,8 +3,6 @@
 extern crate core;
 extern crate test;
 
-use core::hazard;
-
 use test::Bencher;
 
 // #[bench]

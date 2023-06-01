@@ -24,7 +24,6 @@ cli = { path = "cli"}
 core = { path = "core" }
 human-panic = "1.0.3"
 better-panic = "0.2.0"
-log = "0.4.11"
 tracing-subscriber = "0.3.17"
 
 [dependencies.clap]

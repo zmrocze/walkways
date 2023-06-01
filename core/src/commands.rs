@@ -2,6 +2,7 @@
 use utils::app_config::AppConfig;
 use utils::error::Result;
 use std::fs::File;
+use tracing::{info};
 
 /// Show the configuration file
 pub fn config() -> Result<()> {
