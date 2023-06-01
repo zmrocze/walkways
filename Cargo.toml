@@ -28,6 +28,10 @@ log = "0.4.11"
 slog-scope = "4.3.0"
 slog-stdlog = "4.1.0"
 
+[dependencies.clap]
+version = "4.3.0"
+features = ["cargo", "derive"]
+
 [dev-dependencies]
 assert_cmd = "1.0.1"
 predicates = "1.0.5"

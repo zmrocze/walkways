@@ -1,22 +1,7 @@
-use super::hazard;
-use super::error;
 
 use utils::app_config::AppConfig;
 use utils::error::Result;
-
-/// Show the configuration file
-pub fn hazard() -> Result<()> {
-    // Generate, randomly, True or False
-    let random_hazard: bool = hazard::generate_hazard()?;
-
-    if random_hazard {
-        println!("You got it right!");
-    } else {
-        println!("You got it wrong!");
-    }
-
-    Ok(())
-}
+use std::fs::File;
 
 /// Show the configuration file
 pub fn config() -> Result<()> {
@@ -33,8 +18,16 @@ pub fn simulate_error() -> Result<()> {
     info!("We are simulating an error");
 
     // Simulate an error
-    error::simulate_error()?;
+    simulate_error_aux()?;
 
     // We should never get here...
+    Ok(())
+}
+
+/// Return, randomly, true or false
+pub fn simulate_error_aux() -> Result<()> {
+    // Trigger an error
+    File::open("thisfiledoesnotexist")?;
+
     Ok(())
 }

@@ -1,5 +1,6 @@
 use config::{Config, Environment};
 use std::ops::Deref;
+use std::path::PathBuf;
 use std::sync::RwLock;
 use lazy_static::lazy_static;
 use serde::Deserialize;
@@ -49,13 +50,13 @@ impl AppConfig {
         Ok(())
     }
 
-    pub fn merge_config(config_file: Option<&str>) -> Result<()> {
+    pub fn merge_config(config_file: Option<PathBuf>) -> Result<()> {
         // Merge settings with config file if there is one
         if let Some(config_file_path) = config_file {
             {
                 CONFIG
                     .write()?
-                    .merge(config::File::with_name(config_file_path))?;
+                    .merge(config::File::from(config_file_path))?;
             }
         }
         Ok(())
