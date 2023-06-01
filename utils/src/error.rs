@@ -2,6 +2,7 @@ use std::fmt;
 use std::result;
 
 use failure::{Backtrace, Context, Fail};
+use tracing::subscriber::SetGlobalDefaultError;
 
 /// A type alias that forces the usage of the custom error type.
 pub type Result<T> = result::Result<T, Error>;
@@ -94,8 +95,8 @@ impl From<clap::Error> for Error {
     }
 }
 
-impl From<log::SetLoggerError> for Error {
-    fn from(err: log::SetLoggerError) -> Self {
+impl From<SetGlobalDefaultError> for Error {
+    fn from(err: SetGlobalDefaultError) -> Self {
         Error {
             inner: err.context(ErrorKind::LoggerError),
         }

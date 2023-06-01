@@ -25,8 +25,7 @@ core = { path = "core" }
 human-panic = "1.0.3"
 better-panic = "0.2.0"
 log = "0.4.11"
-slog-scope = "4.3.0"
-slog-stdlog = "4.1.0"
+tracing-subscriber = "0.3.17"
 
 [dependencies.clap]
 version = "4.3.0"
