@@ -34,6 +34,15 @@ pub struct Setter<'a, A> {
 }
 
 impl<'a, A: 'a> Setter<'a, A> {
+  pub fn new<F>(f: F) -> Setter<'a, A>
+  where
+    F: (FnMut(A) -> ()) + 'a,
+  {
+    Setter {
+      setter: Box::new(f),
+    }
+  }
+
   fn premap<B, F>(mut self, f: F) -> Setter<'a, B>
   where
     F: Fn(B) -> A + 'a,
@@ -58,6 +67,7 @@ pub struct CalculateParams<A, B> {
 // A impl MeasuredParams
 pub struct Monitor<A> {
   check: fn(A) -> bool,
+  // should be more desriptive than bool
 }
 
 // Full logic of platform on pure data

@@ -1,5 +1,5 @@
 //! Concrete implementations for the platform simulation
-use std::sync::Mutex;
+use std::{convert::identity, sync::Mutex};
 
 use uom::si::f64::*;
 use uom::si::time::second;
@@ -15,10 +15,6 @@ struct InputParams {
   distance_at_back: Length,
   velocity_at_front: Velocity,
   velocity_at_back: Velocity,
-}
-
-struct ControlledParams {
-  acceleration: Acceleration,
 }
 
 #[derive(Debug, Copy, Clone)]
@@ -69,16 +65,29 @@ fn update_to_current_systemtime(
 }
 
 impl StateManager<MotionVector> {
-  fn get_state(&self) -> MotionVector {
-    {
-      let mut last_state = self.last_state_and_access_time.lock().unwrap();
-      let new_state = update_to_current_systemtime(&last_state.0, &last_state.1);
-      *last_state = new_state;
-      return new_state.0;
-    }
+  pub fn get_state(&self) -> MotionVector {
+    self.update_then_modify(identity)
   }
 
-  fn set_state(self, acc: Acceleration) {}
+  pub fn set_state(&self, acc: Acceleration) {
+    self.update_then_modify(|vec| MotionVector {
+      acceleration: acc,
+      ..vec
+    });
+  }
+
+  fn update_then_modify<F>(&self, modify: F) -> MotionVector
+  where
+    F: Fn(MotionVector) -> MotionVector,
+  {
+    {
+      let mut last_state = self.last_state_and_access_time.lock().unwrap();
+      let (vec, now) = update_to_current_systemtime(&last_state.0, &last_state.1);
+      let new_vec = modify(vec);
+      *last_state = (new_vec, now);
+      return new_vec;
+    }
+  }
 }
 
 fn calculate_input_params(
@@ -119,9 +128,11 @@ impl<S: Copy> TrackStateManager<S> {
 }
 
 /// What control system needs
+/// Platforms impure parts 
 pub struct ThinkOFName<'a, A, B> {
   loader: Loader<'a, A>,
   setter: Setter<'a, B>,
+  // + server connection
 }
 
 impl<'a> TrackStateManager<MotionVector> {
@@ -164,5 +175,12 @@ impl<'a> TrackStateManager<MotionVector> {
     loaders_rest.insert(0, loader_first_platform);
     loaders_rest.push(loader_last_platform);
     return loaders_rest;
+  }
+
+  fn makeSetters(&'a self) -> Vec<Setter<'a, Acceleration>> {
+    (&self.platform_states)
+      .into_iter()
+      .map(|st| Setter::new(move |acc| st.set_state(acc)))
+      .collect()
   }
 }
