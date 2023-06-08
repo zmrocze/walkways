@@ -1,12 +1,11 @@
-
-use super::error::{Result, Error};
+use super::error::{Error, Result};
 
 // use tracing_subscriber::{fmt};
 // use tracing_subscriber::prelude::*;
 use tracing_subscriber;
 
 // In code use:
-// 
+//
 // use std::{error::Error, io};
 // use tracing::{trace, debug, info, warn, error, Level};
 
@@ -18,12 +17,12 @@ use tracing_subscriber;
 //
 
 pub fn install_logger() -> Result<()> {
-    let subscriber = tracing_subscriber::fmt().finish();
+  let subscriber = tracing_subscriber::fmt().finish();
 
-    return tracing::subscriber::set_global_default(subscriber).map_err(Error::from);
+  return tracing::subscriber::set_global_default(subscriber).map_err(Error::from);
 }
 
-// pub 
+// pub
 
 // let fmt_layer = fmt::layer()
 //     .with_target(false);

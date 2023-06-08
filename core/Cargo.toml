@@ -12,3 +12,12 @@ tracing = "0.1.37"
 [dependencies.clap]
 version = "4.3.0"
 features = ["cargo", "derive"]
+
+[dependencies.uom]
+version = "0.34.0"
+default-features = false
+features = [
+  "f32", "f64", # Floating point storage types.
+  "si", "std", # Built-in SI system and std library support.
+  "use_serde", # Serde support.
+  ]
