@@ -1,12 +1,25 @@
+use std::fmt;
+use std::any::type_name;
 // Parameters read from all the sensors.
 // Logic for updating/measuring/fetching MeasuredParams - basically no matter how parameters are gotten,
 // its job is to provide them to the controller.
 pub struct Loader<'a, A> {
   /// morally loader: () -> A
-  pub loader: Box<dyn (FnMut() -> A) + 'a>,
+  loader: Box<dyn (FnMut() -> A) + 'a>,
+}
+
+impl<'a,A> fmt::Debug for Loader<'a, A> {
+  fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+    write!(f, "Loader<{:?}>", type_name::<A>())
+  }
 }
 
 impl<'a, A: 'a> Loader<'a, A> {
+
+  pub fn load(&mut self) -> A {
+    (self.loader)()
+  }
+
   pub fn new<F>(f: F) -> Loader<'a, A>
   where
     F: (FnMut() -> A) + 'a,
@@ -18,14 +31,22 @@ impl<'a, A: 'a> Loader<'a, A> {
 
   pub fn map<B, F>(mut self, f: F) -> Loader<'a, B>
   where
-    F: Fn(A) -> B + 'a,
+    F: Fn(A) -> B + 'a
   {
     let g = Box::new(move || f((self.loader)()));
     Loader { loader: g }
   }
 
   // /// Applicative <*>
-  // fn app(mut self, f: )
+  pub fn combine_load<B, F>(mut self, mut f: Loader<'a, F>) -> Loader<'a, B> 
+  where
+    F: Fn(A) -> B + 'a, B : 'a {
+      Loader::new(move || {
+        let a = self.load();
+        let g = f.load();
+        return g(a);
+      })
+  }
 }
 
 pub struct Setter<'a, A> {

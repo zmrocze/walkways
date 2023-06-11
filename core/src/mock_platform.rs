@@ -1,7 +1,9 @@
 //! Concrete implementations for the platform simulation
 use std::{convert::identity, sync::Mutex};
+use rand::prelude::*;
+use rand_distr::StandardNormal;
 
-use uom::si::f64::*;
+use uom::{si::f64::*};
 use uom::si::time::second;
 
 use crate::platform::{Loader, Setter};
@@ -35,6 +37,14 @@ impl MotionVector {
       velocity: self.velocity + self.acceleration * time_diff,
       acceleration: self.acceleration,
     }
+  }
+}
+
+// Adds random gaussion noise with mean 0 and standard deviation sigma. 
+pub fn add_gaussian_noise(sigma: f64) -> impl Fn(f64) -> f64 {
+  move |x| {
+    let val: f64 = sigma * thread_rng().sample::<f64, _>(StandardNormal);
+    x + val
   }
 }
 

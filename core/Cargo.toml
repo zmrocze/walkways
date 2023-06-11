@@ -8,6 +8,8 @@ edition = "2018"
 [dependencies]
 utils = { path = "../utils" }
 tracing = "0.1.37"
+rand = "0.8.5"
+rand_distr = "0.4.3"
 
 [dependencies.clap]
 version = "4.3.0"
