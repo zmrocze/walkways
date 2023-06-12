@@ -107,7 +107,7 @@ pub struct PlatformPure<I, O, A> {
 pub struct PlatformImpure<'a, I, O, A> {
   loader: Loader<'a, I>,
   setter: Setter<'a, O>,
-  client_connection: Box<dyn ClientConnection<A, O>>
+  client_connection: Box<dyn ClientConnection<A>>
 }
 
 /// Implementation of the platforms controller,
@@ -118,8 +118,19 @@ pub struct Platform<'a, I,O,A> {
   platform_impure: PlatformImpure<'a ,I,O,A>,
 }
 
+/// Runs the platform controller.
+pub fn run_platform_controller<'a, I, O, A>(platform: Platform<'a, I, O, A>) -> () {
+  loop {
+    let inp = platform.platform_impure.loader.load();
+  } 
+}
+
+/// Initializes client connection and handshakes
+// pub fn initialize_client_connection(params: ConnectionParams) -> ClientConnection
+
 /// What the controller needs from the connection to the server.
-pub trait ClientConnection<A, O> {
+pub trait ClientConnection<A> {
   fn send_alerts(&self, alerts: A);
-  fn get_runstatus(&self) -> O;
+  /// Get status: Start/Stop. Mustn't block.
+  fn get_runstatus(&self) -> RunStatus;
 }
