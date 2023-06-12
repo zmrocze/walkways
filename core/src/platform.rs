@@ -1,5 +1,7 @@
 use std::fmt;
 use std::any::type_name;
+
+use crate::server::RunStatus;
 // Parameters read from all the sensors.
 // Logic for updating/measuring/fetching MeasuredParams - basically no matter how parameters are gotten,
 // its job is to provide them to the controller.
@@ -78,16 +80,14 @@ impl<'a, A: 'a> Setter<'a, A> {
 
 // }
 
-// Just the pure math function modelling platform
-// A impl MeasuredParams
-// B impl ControlledParams
-pub struct CalculateParams<A, B> {
-  calculate: fn(A) -> B,
+/// Just the pure math function calculating platforms desired parameters like acceleration
+pub trait CalculateParams<I, O> {
+  fn calculate(&self, input: I) -> O;
 }
 
 // A impl MeasuredParams
-pub struct Monitor<A> {
-  check: fn(A) -> bool,
+pub trait Monitor<I, A> {
+  fn check(&self, runStatus : RunStatus, input: I) -> A;
   // should be more desriptive than bool
 }
 
@@ -97,4 +97,29 @@ pub struct Controller {
   // access Server messages
   // control movemement
   // respond with alerts/confirmations
+}
+
+pub struct PlatformPure<I, O, A> {
+  calculate_params: Box<dyn CalculateParams<I,O>>,
+  monitor: Box<dyn Monitor<I, A>>,
+}
+
+pub struct PlatformImpure<'a, I, O, A> {
+  loader: Loader<'a, I>,
+  setter: Setter<'a, O>,
+  client_connection: Box<dyn ClientConnection<A, O>>
+}
+
+/// Implementation of the platforms controller,
+/// including pure controller logic 
+/// and impure interfaces to hardware and client connection
+pub struct Platform<'a, I,O,A> {
+  platform_pure: PlatformPure<I,O,A>,
+  platform_impure: PlatformImpure<'a ,I,O,A>,
+}
+
+/// What the controller needs from the connection to the server.
+pub trait ClientConnection<A, O> {
+  fn send_alerts(&self, alerts: A);
+  fn get_runstatus(&self) -> O;
 }
