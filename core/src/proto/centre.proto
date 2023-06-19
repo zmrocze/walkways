@@ -1,0 +1,34 @@
+
+// Server interface, called by platforms
+
+syntax = "proto3";
+
+package centre;
+
+service Centre {
+  rpc SendAlerts (stream Alert) returns (ReceivedAlerts);
+  rpc ImReady (ImReadyMsg) returns (ImReadyAnswer);
+}
+
+enum ReadyStatus {
+  ImNotReadyError = 0;
+  ImReadyOk = 1;
+}
+
+message ImReadyMsg {
+  ReadyStatus readyStatus = 1;
+}
+message ImReadyAnswer {}
+
+message Alert {
+  enum Level {
+    Error = 0;
+    Warn = 1;
+  }
+
+  Level level = 1;
+  string message = 2;
+}
+
+message ReceivedAlerts {
+}

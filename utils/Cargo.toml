@@ -1,9 +1,9 @@
 [package]
 name = "utils"
 version = "0.0.1"
-authors = ["Abid Omar <contact@omarabid.com>"]
+authors = []
 description = "Various utilities and functionalities"
-edition = "2018"
+edition = "2021"
 
 [dependencies]
 failure = "0.1.5"

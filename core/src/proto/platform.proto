@@ -1,0 +1,21 @@
+
+// Platform interface, called by the server
+
+syntax = "proto3";
+
+package platform;
+
+service Platform {
+  rpc StartSignal (StartMsg) returns (StartAnswer);
+  rpc StopSignal (StopMsg) returns (StopAnswer);
+  rpc Ping (PingMsg) returns (PongAnswer);
+  // rpc Ping (PingMsg) returns (PingAnswer)
+}
+
+message StartMsg {}
+message StartAnswer {}
+message StopMsg {}
+message StopAnswer {}
+
+message PingMsg{}
+message PongAnswer {}
