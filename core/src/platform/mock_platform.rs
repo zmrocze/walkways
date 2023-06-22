@@ -4,46 +4,16 @@ use std::{convert::identity, sync::Mutex};
 use rand::prelude::*;
 use rand_distr::StandardNormal;
 
+use uom::ConstZero;
 use uom::{si::f64::*};
 use uom::si::time::second;
 
+use crate::common::{InputParams, TrackPosition, MotionVector};
 use crate::platform::{Loader, Setter};
 use crate::proto::platform;
 
 use super::communication::OpenConnection;
 use super::{run_platform_controller, Platform, CentreConnection, Calculate, Monitor};
-
-/// Parameters that are the input to platforms control system.
-struct InputParams {
-  /// position ∈ [0,1), where 0 is the start of the track
-  position: Length,
-  velocity: Velocity,
-  distance_at_front: Length,
-  distance_at_back: Length,
-  velocity_at_front: Velocity,
-  velocity_at_back: Velocity,
-}
-
-#[derive(Debug, Copy, Clone)]
-struct MotionVector {
-  position: Length,
-  velocity: Velocity,
-  acceleration: Acceleration,
-}
-
-impl MotionVector {
-  /// Assuming acceleration stayed constant from t0 to t1
-  /// and self describes the vector at time t0
-  /// return the vector at time t1
-  fn update(&self, time_diff: Time) -> Self {
-    // let time_diff = t1 - t0;
-    MotionVector {
-      position: self.position + (self.velocity + 0.5 * self.acceleration * time_diff) * time_diff,
-      velocity: self.velocity + self.acceleration * time_diff,
-      acceleration: self.acceleration,
-    }
-  }
-}
 
 // Adds random gaussion noise with mean 0 and standard deviation sigma. 
 pub fn add_gaussian_noise(sigma: f64) -> impl Fn(f64) -> f64 {
@@ -52,11 +22,6 @@ pub fn add_gaussian_noise(sigma: f64) -> impl Fn(f64) -> f64 {
     x + val
   }
 }
-
-///
-// struct PlatformState {
-//   platform_state: MotionVector,
-// }
 
 /// Component of the simulation.
 /// Tracks platforms state and mimics to platform the hardware interface
@@ -111,20 +76,20 @@ fn calculate_input_params(
   InputParams {
     position: this_platform.position,
     velocity: this_platform.velocity,
-    distance_at_front: front_platform.position - this_platform.position,
-    distance_at_back: this_platform.position - back_platform.position,
+    distance_at_front: this_platform.position.distance_to(front_platform.position),
+    distance_at_back: back_platform.position.distance_to(this_platform.position),
     velocity_at_front: front_platform.velocity,
     velocity_at_back: back_platform.velocity,
   }
 }
 
-struct TrackStateManager<S> {
+pub struct TrackStateManager<S> {
   /// Platform states from the first to the last in order
   platform_states: Vec<StateManager<S>>,
 }
 
 impl<S: Copy> TrackStateManager<S> {
-  fn init(ss: Vec<S>) -> TrackStateManager<S> {
+  pub fn init(ss: Vec<S>) -> TrackStateManager<S> {
     let now = std::time::Instant::now();
     TrackStateManager {
       platform_states: ss
@@ -140,16 +105,14 @@ impl<S: Copy> TrackStateManager<S> {
   }
 }
 
-/// What control system needs
-/// Platforms impure parts 
-pub struct ThinkOFName<'a, A, B> {
-  loader: Loader<'a, A>,
-  setter: Setter<'a, B>,
-  // + server connection
-}
-
 impl<'a> TrackStateManager<MotionVector> {
-  fn makeLoaders(&'a self) -> Vec<Loader<'a, InputParams>> {
+  pub fn make_loaders_and_setters(&'a self) -> Vec<(Loader<'a, InputParams>, Setter<'a, Acceleration>)> {
+    self.make_loaders()
+      .into_iter()
+      .zip(self.make_setters())
+      .collect()
+  }
+  fn make_loaders(&'a self) -> Vec<Loader<'a, InputParams>> {
     // A loader for one platform accesses mutexes of itself but also
     // of the two neighbouring platforms. This means that without any consideration,
     // we would run into the "Dining philosophers problem" quite literaly.
@@ -190,7 +153,7 @@ impl<'a> TrackStateManager<MotionVector> {
     return loaders_rest;
   }
 
-  fn makeSetters(&'a self) -> Vec<Setter<'a, Acceleration>> {
+  fn make_setters(&'a self) -> Vec<Setter<'a, Acceleration>> {
     (&self.platform_states)
       .into_iter()
       .map(|st| Setter::new(move |acc| st.set_state(acc)))

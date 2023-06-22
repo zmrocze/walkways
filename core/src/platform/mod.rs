@@ -1,20 +1,23 @@
 
-mod communication;
-mod mock_platform;
+pub mod communication;
+pub mod mock_platform;
+pub mod monitor;
 
-use std::fmt;
+use std::fmt::{self, Debug};
 use std::any::type_name;
+use tracing::{error};
 
 use crate::common::RunStatus;
 
-use self::communication::OpenConnection;
+use crate::platform::communication::OpenConnection;
+
 
 // Parameters read from all the sensors.
 // Logic for updating/measuring/fetching MeasuredParams - basically no matter how parameters are gotten,
 // its job is to provide them to the controller.
 pub struct Loader<'a, A> {
   /// morally loader: () -> A
-  loader: Box<dyn (Fn() -> A) + 'a>,
+  loader: Box<dyn (Fn() -> A) + 'a + Send>,
 }
 
 impl<'a,A> fmt::Debug for Loader<'a, A> {
@@ -31,7 +34,7 @@ impl<'a, A: 'a> Loader<'a, A> {
 
   pub fn new<F>(f: F) -> Loader<'a, A>
   where
-    F: (Fn() -> A) + 'a,
+    F: (Fn() -> A) + 'a + Send,
   {
     Loader {
       loader: Box::new(f),
@@ -40,7 +43,7 @@ impl<'a, A: 'a> Loader<'a, A> {
 
   pub fn map<B, F>(self, f: F) -> Loader<'a, B>
   where
-    F: Fn(A) -> B + 'a
+    F: Fn(A) -> B + 'a + Send
   {
     let g = Box::new(move || f((self.loader)()));
     Loader { loader: g }
@@ -61,7 +64,7 @@ impl<'a, A: 'a> Loader<'a, A> {
 pub struct Setter<'a, A> {
   /// morally setter: A -> ()
   /// TODO: allow setter to return error
-  pub setter: Box<dyn (Fn(A) -> ()) + 'a>,
+  pub setter: Box<dyn (Fn(A) -> ()) + 'a + Send>,
 }
 
 impl<'a, A: 'a> Setter<'a, A> {
@@ -72,7 +75,7 @@ impl<'a, A: 'a> Setter<'a, A> {
   
   pub fn new<F>(f: F) -> Setter<'a, A>
   where
-    F: (Fn(A) -> ()) + 'a,
+    F: (Fn(A) -> ()) + 'a + Send,
   {
     Setter {
       setter: Box::new(f),
@@ -81,7 +84,7 @@ impl<'a, A: 'a> Setter<'a, A> {
 
   fn premap<B, F>(self, f: F) -> Setter<'a, B>
   where
-    F: Fn(B) -> A + 'a,
+    F: Fn(B) -> A + 'a + Send,
   {
     let g = Box::new(move |a| (self.setter)(f(a)));
     Setter { setter: g }
@@ -109,6 +112,13 @@ pub struct Platform<'a, I, O, Calc: Calculate<I,O>, Mon: Monitor<I>> {
   monitor: Mon,
 }
 
+impl<'a, I, O, Calc: Calculate<I,O>, Mon: Monitor<I>> Debug for Platform<'a, I, O, Calc, Mon> {
+  fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+    write!(f, "Platform<{:?}, {:?}, {:?}, {:?}>", 
+    type_name::<I>(), type_name::<O>(), type_name::<Calc>(), type_name::<Mon>())
+  }
+}
+
 /// What the controller needs from the connection to the centre.
 #[tonic::async_trait]
 pub trait CentreConnection {
@@ -133,9 +143,10 @@ pub fn run_platform_controller<'a, I, O, Calc: Calculate<I,O>, Mon: Monitor<I>, 
     
     let alerts = platform.monitor.check(&run_status, &inp);
     centre_connection.send_alerts(alerts)
-  } 
+  }
 }
 
+#[tracing::instrument]
 fn run_platform<'a, I, O, Calc: Calculate<I, O> + Send, Mon: Monitor<I> + Send>(
   platform: Platform<'a, I, O, Calc, Mon>,
   centre_addr: tonic::transport::Uri,
@@ -151,13 +162,31 @@ fn run_platform<'a, I, O, Calc: Calculate<I, O> + Send, Mon: Monitor<I> + Send>(
     OpenConnection::init(centre_addr)
   )?;
 
-  let running_server = runtime.spawn(
-    connection.serve_platform_server(our_address)
-  );
-
-  let running_controller = std::thread::spawn(move || {
+  let running_controller = std::thread::spawn(|| {
     run_platform_controller(platform, connection);
   });
+
+  let running_server = std::thread::spawn(|| {
+    runtime.block_on(connection.serve_platform_server(our_address))
+  });
+
+  match running_server.join() {
+    Ok(_) => {
+      error!("Server simply stopped working, shouldn't happen.");
+      connection.send_alerts(vec![
+        // TODO
+      ]);
+    },
+    Err(err) => {
+      error!("Server crashed with and error {:?}", err);
+      connection.send_alerts(vec![
+        // TODO
+      ]);
+    },
+  }
+
+  // This shouldn't error nor finish
+  running_controller.join();
 
   Ok(())
 }
