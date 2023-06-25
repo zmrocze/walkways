@@ -12,12 +12,22 @@ rand = "0.8.5"
 rand_distr = "0.4.3"
 tonic = "0.9.2"
 prost = "^0.11"
-tokio-stream = "0.1.14"
-enum_display_derive = "0.1.1"
+enum-display-derive = "0.1.1"
+serde = "1.0.164"
+ciborium = "0.2.1"
+futures = "0.3.28"
+hyper = "0.14.26"
+http-body = "0.4.5"
+tower = "0.4.13"
+http = "0.2.9"
 
 [dependencies.tokio]
 version = "1.28.2"
 features = ["full"]
+
+[dependencies.tokio-stream]
+version = "0.1.14"
+features = ["net"]
 
 [dependencies.clap]
 version = "4.3.0"
@@ -27,7 +37,7 @@ features = ["cargo", "derive"]
 version = "0.34.0"
 default-features = false
 features = [
-  "f32", "f64", # Floating point storage types.
+  "f64", # Floating point storage types.
   "si", "std", # Built-in SI system and std library support.
   "use_serde", # Serde support.
   ]

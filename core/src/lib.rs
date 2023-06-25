@@ -1,7 +1,7 @@
-pub mod commands;
-pub mod platform;
 mod centre;
-mod proto;
+pub mod commands;
 mod common;
-mod track;
-mod simulation;
+pub mod platform;
+mod proto;
+pub mod simulation;
+pub mod track;

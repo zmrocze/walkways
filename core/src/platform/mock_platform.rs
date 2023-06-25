@@ -1,21 +1,21 @@
 //! Concrete implementations for the platform simulation
-use std::net::SocketAddr;
-use std::{convert::identity, sync::Mutex};
 use rand::prelude::*;
 use rand_distr::StandardNormal;
+use std::net::SocketAddr;
+use std::{convert::identity, sync::Mutex};
 
-use uom::ConstZero;
-use uom::{si::f64::*};
+use uom::si::f64::*;
 use uom::si::time::second;
+use uom::ConstZero;
 
-use crate::common::{InputParams, TrackPosition, MotionVector};
+use crate::common::{InputParams, MotionVector, TrackPosition};
 use crate::platform::{Loader, Setter};
 use crate::proto::platform;
 
 use super::communication::OpenConnection;
-use super::{run_platform_controller, Platform, CentreConnection, Calculate, Monitor};
+use super::{run_platform_controller, Calculate, CentreConnection, Monitor, Platform};
 
-// Adds random gaussion noise with mean 0 and standard deviation sigma. 
+// Adds random gaussion noise with mean 0 and standard deviation sigma.
 pub fn add_gaussian_noise(sigma: f64) -> impl Fn(f64) -> f64 {
   move |x| {
     let val: f64 = sigma * thread_rng().sample::<f64, _>(StandardNormal);
@@ -60,11 +60,11 @@ impl StateManager<MotionVector> {
   where
     F: Fn(MotionVector) -> MotionVector,
   {
-      let mut last_state = self.last_state_and_access_time.lock().unwrap();
-      let (vec, now) = update_to_current_systemtime(&last_state.0, &last_state.1);
-      let new_vec = modify(vec);
-      *last_state = (new_vec, now);
-      return new_vec;
+    let mut last_state = self.last_state_and_access_time.lock().unwrap();
+    let (vec, now) = update_to_current_systemtime(&last_state.0, &last_state.1);
+    let new_vec = modify(vec);
+    *last_state = (new_vec, now);
+    return new_vec;
   }
 }
 
@@ -106,8 +106,11 @@ impl<S: Copy> TrackStateManager<S> {
 }
 
 impl<'a> TrackStateManager<MotionVector> {
-  pub fn make_loaders_and_setters(&'a self) -> Vec<(Loader<'a, InputParams>, Setter<'a, Acceleration>)> {
-    self.make_loaders()
+  pub fn make_loaders_and_setters(
+    &'a self,
+  ) -> Vec<(Loader<'a, InputParams>, Setter<'a, Acceleration>)> {
+    self
+      .make_loaders()
       .into_iter()
       .zip(self.make_setters())
       .collect()

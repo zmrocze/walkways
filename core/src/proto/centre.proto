@@ -17,17 +17,20 @@ enum ReadyStatus {
 
 message ImReadyMsg {
   ReadyStatus readyStatus = 1;
+  uint32 platformId = 2;
 }
 message ImReadyAnswer {}
 
 message Alert {
-  enum Level {
-    Error = 0;
-    Warn = 1;
+
+  enum AlertType {
+    Critical = 0;
+    Unsafe = 1;
+    Warn = 2;
   }
 
-  Level level = 1;
-  string message = 2;
+  AlertType alert_type = 1;
+  bytes message = 2;
 }
 
 message ReceivedAlerts {
